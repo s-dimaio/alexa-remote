@@ -498,13 +498,37 @@ class AlexaRemote extends EventEmitter {
         this.alexaCookie.stopProxyServer(callback);
     }
 
-    /** @deprecated */
+    /** 
+     * @deprecated Use isPushConnected instead
+     */
     isWsMqttConnected() {
         return this.isPushConnected();
     }
 
     isPushConnected() {
-        return this.alexahttp2Push && this.alexahttp2Push.isConnected();
+        return this.alexahttp2Push && this.alexahttp2Push.isConnectedV2();
+    }
+
+    /**
+     * Actively verify push connection with HTTP/2 ping
+     * More reliable than isPushConnected() but slower (~100ms)
+     * Use this when you need absolute certainty
+     * @param {Function} callback - (isConnected: boolean)
+     */
+    verifyPushConnection(callback) {
+        if (!this.alexahttp2Push) {
+            return callback && callback(false);
+        }
+
+        // Fast pre-check
+        if (!this.alexahttp2Push.isConnectedV2()) {
+            return callback && callback(false);
+        }
+
+        // Active ping verification
+        this.alexahttp2Push.ping((err, duration, isAlive) => {
+            callback && callback(isAlive);
+        });
     }
 
     /**
